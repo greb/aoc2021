@@ -77,6 +77,9 @@ def cmd_run(args):
     else:
         inp = fetch_example(args.day)
 
+    if hasattr(module, 'parse'):
+        inp = module.parse(inp)
+
     if hasattr(module, 'part1') and args.part1:
         print(module.part1(inp))
 
