@@ -2,6 +2,8 @@ import itertools
 
 from termcolor import colored
 
+import utils
+
 board_size = 5
 
 def parse(inp):
@@ -10,9 +12,8 @@ def parse(inp):
     nums = [int(n) for n in lines[0].split(',')]
 
     boards = []
-    for i in range(2, len(lines), board_size+1):
-        board_lines = lines[i:i+board_size]
-        board = [int(n) for line in board_lines for n in line.split()]
+    for board_lines in utils.chunked(lines[2:], board_size+1):
+        board = [int(v) for line in board_lines for v in line.split()]
         boards.append(board)
 
     return nums, boards
@@ -38,12 +39,11 @@ class Board:
                 self.marks[i] = 1
 
     def is_bingo(self):
-        vals = zip(self.nums, self.marks)
-        rows = list(zip(*([vals]*board_size)))
-        cols = list(zip(*rows))
+        rows = list(utils.chunked(self.marks, board_size))
+        cols = list(utils.transpose(rows))
 
-        for vals in itertools.chain(rows, cols):
-            if all(v[1] for v in vals):
+        for marks in itertools.chain(rows, cols):
+            if all(marks):
                 return True
 
         return False
