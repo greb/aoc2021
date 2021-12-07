@@ -5,7 +5,7 @@ def parse(inp):
 def solve(crabs, cost_func):
     min_fuel = None
 
-    for pos in range(0, max(crabs) + 1):
+    for pos in range(min(crabs), max(crabs) + 1):
         fuel = 0
         for c in crabs:
             fuel += cost_func(abs(c - pos))
