@@ -1,73 +1,58 @@
 import math
+import collections
+
+from days.coord import Coord
+from days.graph import Graph
 
 def parse(inp):
-    heightmap = []
-    for line in inp.splitlines():
+    heightmap = dict()
+    for y, line in enumerate(inp.splitlines()):
         row = [int(ch) for ch in line]
-        heightmap.append(row)
-    return heightmap
+        for x, h in enumerate(row):
+            c = Coord(x, y)
+            heightmap[c] = h
+
+    neighbors = collections.defaultdict(list)
+    for c in heightmap.keys():
+        for n in c.adjacent():
+            if n in heightmap:
+                neighbors[c].append(n)
+
+    return heightmap, neighbors
 
 
-def neighbors(hm, x, y, w, h):
-    d = [(1,0), (-1,0), (0,1), (0,-1)]
-
-    for dx, dy in d:
-        nx = x+dx
-        ny = y+dy
-
-        if 0 <= nx < w and 0 <= ny < h:
-            yield hm[ny][nx], nx, ny
-
-
-def is_low_point(height, ns):
-    return all(height < n[0] for n in ns)
-
-
-def part1(heightmap):
-    w, h = len(heightmap[0]), len(heightmap)
-    risks = []
-
-    for y in range(h):
-        for x in range(w):
-            ns = neighbors(heightmap, x, y, w, h)
-            height = heightmap[y][x]
-
-            if is_low_point(height, ns):
-                risks.append(height+1)
-
-    return sum(risks)
-
-def part2(heightmap):
-    w, h = len(heightmap[0]), len(heightmap)
+def find_low_points(heightmap, neighbors):
     low_points = []
+    for c, height in heightmap.items():
+        if all(heightmap[n] > height for n in neighbors[c]):
+            low_points.append(c)
+    return low_points
 
-    for y in range(h):
-        for x in range(w):
-            ns = neighbors(heightmap, x, y, w, h)
-            height = heightmap[y][x]
 
-            if is_low_point(height, ns):
-                low_points.append((x,y))
+def part1(inp):
+    heightmap, neighbors = inp
+    low_points = find_low_points(heightmap, neighbors)
 
+    total_risk = sum(heightmap[p] + 1 for p in low_points)
+    return total_risk
+
+
+def part2(inp):
+    heightmap, neighbors = inp
+    low_points = find_low_points(heightmap, neighbors)
+
+    vertices = list(heightmap.keys())
+    edges = collections.defaultdict(list)
+    for c, ns in neighbors.items():
+        for n in ns:
+            if heightmap[n] < 9:
+                edges[c].append(n)
+
+    graph = Graph(vertices, edges)
     basins = []
     for low_point in low_points:
-        visited = set()
-        unvisited = [low_point]
+        reached = graph.reachable(low_point)
+        basins.append(len(reached))
 
-        while unvisited:
-            x, y = unvisited.pop()
-            visited.add((x,y))
-
-            ns = neighbors(heightmap, x, y, w, h)
-            for n_height, nx, ny in ns:
-                if (nx, ny) in visited:
-                    continue
-                if n_height == 9:
-                    continue
-                unvisited.append((nx, ny))
-
-        basins.append(len(visited))
-
-    basins = sorted(basins)[-3:]
-    return math.prod(basins)
+    return math.prod(sorted(basins)[-3:])
 
