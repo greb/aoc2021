@@ -2,7 +2,7 @@ import itertools
 
 from termcolor import colored
 
-import utils
+from days.iterhelpers import *
 
 board_size = 5
 
@@ -12,7 +12,7 @@ def parse(inp):
     nums = [int(n) for n in lines[0].split(',')]
 
     boards = []
-    for board_lines in utils.chunked(lines[2:], board_size+1):
+    for board_lines in chunked(lines[2:], board_size+1):
         board = [int(v) for line in board_lines for v in line.split()]
         boards.append(board)
 
@@ -39,8 +39,8 @@ class Board:
                 self.marks[i] = 1
 
     def is_bingo(self):
-        rows = list(utils.chunked(self.marks, board_size))
-        cols = list(utils.transpose(rows))
+        rows = list(chunked(self.marks, board_size))
+        cols = list(transpose(rows))
 
         for marks in itertools.chain(rows, cols):
             if all(marks):
