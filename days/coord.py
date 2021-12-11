@@ -31,8 +31,17 @@ class Coord:
         for d in [N,S,E,W]:
             yield self + d
 
+    def adjecant8(self):
+        for d in [N, NE, E, SE, S, SW, W, NW]:
+            yield self + d
+
+
 N = Coord(0, -1)
 E = Coord(1, 0)
 S = Coord(0, 1)
 W = Coord(-1, 0)
 
+NE = N+E
+SE = S+E
+SW = S+W
+NW = N+W
