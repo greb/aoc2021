@@ -22,6 +22,21 @@ class Coord:
         self.x += other.x
         self.y += other.y
 
+    def __getitem__(self, key):
+        if key == 'x' or key == 0:
+            return self.x
+        elif key == 'y' or key == 1:
+            return self.y
+        raise KeyError(f'No item with key {key}')
+
+    def __setitem__(self, key, value):
+        if key == 'x' or key == 0:
+            self.x = value
+        elif key == 'y' or key == 1:
+            self.y = value
+        else:
+            raise KeyError(f'No item with key {key}')
+
     def is_bounded(self, x_max, y_max, x_min=0, y_min=0):
         bx = x_min <= self.x < x_max
         by = y_min <= self.y < y_max
