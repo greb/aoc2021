@@ -2,7 +2,6 @@ import math
 import collections
 
 from days.coord import Coord
-from days.graph import Graph
 
 def parse(inp):
     heightmap = dict()
@@ -41,18 +40,21 @@ def part2(inp):
     heightmap, neighbors = inp
     low_points = find_low_points(heightmap, neighbors)
 
-    vertices = list(heightmap.keys())
-    edges = collections.defaultdict(list)
-    for c, ns in neighbors.items():
-        for n in ns:
-            if heightmap[n] < 9:
-                edges[c].append(n)
-
-    graph = Graph(vertices, edges)
     basins = []
     for low_point in low_points:
-        reached = graph.reachable(low_point)
-        basins.append(len(reached))
+        queue = collections.deque()
+        queue.append(low_point)
+        visited = set()
+        visited.add(low_point)
+
+        while queue:
+            point = queue.popleft()
+            for n_point in neighbors[point]:
+                if n_point not in visited and heightmap[n_point] < 9:
+                    queue.append(n_point)
+                    visited.add(n_point)
+
+        basins.append(len(visited))
 
     return math.prod(sorted(basins)[-3:])
 
