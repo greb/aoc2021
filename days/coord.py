@@ -13,6 +13,9 @@ class Coord:
     def __eq__(self, other):
         return self.x == other.x and self.y == other.y
 
+    def __lt__(self, other):
+        return True
+
     def __add__(self, other):
         x = self.x + other.x
         y = self.y + other.y
@@ -37,11 +40,6 @@ class Coord:
         else:
             raise KeyError(f'No item with key {key}')
 
-    def is_bounded(self, x_max, y_max, x_min=0, y_min=0):
-        bx = x_min <= self.x < x_max
-        by = y_min <= self.y < y_max
-        return bx and by
-
     def adjacent(self):
         for d in [N,S,E,W]:
             yield self + d
@@ -49,6 +47,14 @@ class Coord:
     def adjecant8(self):
         for d in [N, NE, E, SE, S, SW, W, NW]:
             yield self + d
+
+    def manhatten_dist(self, other):
+        return abs(self.x - other.x) + abs(self.y - other.y)
+
+    def is_bounded(self, x_max, y_max, x_min=0, y_min=0):
+        bx = x_min <= self.x < x_max
+        by = y_min <= self.y < y_max
+        return bx and by
 
 
 N = Coord(0, -1)
