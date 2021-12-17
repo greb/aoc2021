@@ -5,21 +5,6 @@ def parse(inp):
     return [int(n) for n in re_digit.findall(inp)]
 
 
-def find_y_max(yd, yt0, yt1):
-    y = 0
-    y_max = 0
-
-    while y >= yt0:
-        if y <= yt1:
-            return y_max
-        y += yd
-        if y > y_max:
-            y_max = y
-        yd -= 1
-
-    return None
-
-
 def hit_target(xd, yd, target):
     xt0, xt1, yt0, yt1 = target
     x, y = 0,0
@@ -39,24 +24,16 @@ def hit_target(xd, yd, target):
 
 
 def part1(target):
-    _, _, yt0, yt1 = target
-
-    y_max = 0
-
-    for yd in range(1000):
-        n_y_max = find_y_max(yd, yt0, yt1)
-        if n_y_max is None:
-            continue
-        y_max = n_y_max
-        yd += 1
-
-    return y_max
+    _, _, yt0, _ = target
+    return yt0*(yt0+1) // 2
 
 
 def part2(target):
     target_cnt = 0
-    for xd in range(1000):
-        for yd in range(-1000, 1000):
+    _, xt1, yt0, _ = target
+
+    for xd in range(1, xt1+1):
+        for yd in range(yt0, -yt0):
             if hit_target(xd, yd, target):
                 target_cnt += 1
     return target_cnt
