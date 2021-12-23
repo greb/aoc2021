@@ -14,7 +14,7 @@ class Coord:
         return self.x == other.x and self.y == other.y
 
     def __lt__(self, other):
-        return True
+        return (self.x, self.y) < (other.x, other.y)
 
     def __add__(self, other):
         x = self.x + other.x
