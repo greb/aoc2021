@@ -29,19 +29,20 @@ def cube_size(cube):
     return size
 
 def count_cubicles(steps):
-    cubes = collections.Counter()
-    for is_on, new in steps:
-        update = collections.Counter()
-        for old, n in cubes.items():
-            int_cube = intersect(new, old)
-            if int_cube:
-                update[int_cube] -= n
+    count = 0
+
+    counted_cubes = []
+    for is_on, cube in reversed(steps):
         if is_on:
-            update[new] += 1
-        cubes.update(update)
-
-    return sum(cube_size(c)*n for c, n in cubes.items())
-
+            int_steps = []
+            for cnt_cube in counted_cubes:
+                int_cube = intersect(cube, cnt_cube)
+                if int_cube:
+                    int_steps.append((True, int_cube))
+            count += cube_size(cube)
+            count -= count_cubicles(int_steps)
+        counted_cubes.append(cube)
+    return count
 
 def part1(steps):
     N = 50
