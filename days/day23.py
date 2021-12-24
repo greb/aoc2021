@@ -3,130 +3,137 @@ import heapq
 
 from days.coord import Coord
 
-room_colors = {
-    2:'A', 4:'B', 6:'C', 8:'D',
-}
-move_cost = {'A':1, 'B': 10, 'C':100, 'D':1000}
+move_costs = {'A':1, 'B': 10, 'C':100, 'D':1000}
+pos_to_room = {2: 'A', 4: 'B', 6:'C', 8:'D'}
+room_to_pos = {'A':2, 'B':4, 'C':6, 'D':8}
+
+empty = '_'
+
+LEN_HALL = 11
 
 def parse(inp):
-    burrow = dict()
-    for y, row in enumerate(inp.splitlines()):
+    rooms = collections.defaultdict(list)
+    for row in inp.splitlines()[2:-1]:
         for x, tile in enumerate(row):
-            if tile == '.':
-                burrow[Coord(x-1,y-1)] = None
-            elif tile in move_cost:
-                burrow[Coord(x-1,y-1)] = tile
-    return burrow
+            r = pos_to_room.get(x-1)
+            if r: rooms[r].append(tile)
+    return rooms
 
-def map_neighborhood(burrow):
-    neighbors = collections.defaultdict(list)
-    for pos in burrow:
-        for n in pos.adjacent():
-            if n not in burrow:
-                continue
-            neighbors[pos].append(n)
-    return neighbors
+def reachable(a, b, hall):
+    if a < b:
+        hall = hall[a+1:b+1]
+    else:
+        hall = hall[b:a]
+    if not any(h != empty for h in hall):
+        return abs(a-b)
 
-def hash_burrow(burrow):
-    tiles = [burrow[p] for p in sorted(burrow.keys())]
-    return hash(tuple(tiles))
-
-def moves(burrow, neighbors):
-    for move_pos, color in burrow.items():
-        if not color:
+def moves_down(state):
+    # move any shrimp to correct room if possible
+    hall, rooms = state
+    for x, shrimp in enumerate(hall):
+        # Can move in front of room?
+        room_x = room_to_pos.get(shrimp)
+        if not room_x:
+            continue
+        dist = reachable(x, room_x, hall)
+        if not dist:
             continue
 
-        passed_hall = False
-        moves = []
-        stack = [(0, move_pos)]
-        visited = set()
-        while stack:
-            dist, pos = stack.pop()
-            if pos in visited:
-                continue
-            visited.add(pos)
+        # Has room space left?
+        n_rooms = dict(rooms)
+        n_room = list(n_rooms[shrimp])
+        for y, s in reversed(list(enumerate(n_room))):
+            if s == empty:
+                break
+            if s != shrimp:
+                y = None
+                break
+        if y is None: continue
+        dist += y+1
 
-            if pos.y > 0:
-                if passed_hall:
-                    below = Coord(pos.x, pos.y+1)
-                    if below not in burrow or burrow[below] == color:
-                        moves.append((dist, pos))
-            else:
-                passed_hall = True
-                if pos.x not in room_colors:
-                    moves.append((dist, pos))
+        # Move shrimp
+        n_hall = list(hall)
+        n_hall[x] = empty
+        n_room[y] = shrimp
+        n_rooms[shrimp] = tuple(n_room)
 
-            for n in neighbors[pos]:
-                # Already occupied
-                if burrow[n]:
-                    continue
-                # Only visit correct rooms
-                if passed_hall and n.y > 0 and color != room_colors[n.x]:
-                    continue
-                stack.append((dist+1, n))
+        cost = move_costs[shrimp] * dist
+        yield cost, (tuple(n_hall), tuple(n_rooms.items()))
 
-        for dist, pos in moves:
-            if dist == 0:
-                continue
-            n_burrow = burrow.copy()
-            n_burrow[move_pos] = None
-            n_burrow[pos] = color
-            cost = move_cost[color] * dist
-            yield cost, n_burrow
-
-def check_burrow(burrow):
-    for pos, color in burrow.items():
-        if not color:
+def moves_up(state):
+    # Move available shrips from their starting room to the hall
+    hall, rooms = state
+    for r, room in rooms:
+        # Take first available shrimp
+        for y, shrimp in enumerate(room):
+            if shrimp != empty:
+                break
+        else:
             continue
+        dist = y+1
 
-        if pos.y == 0:
-            return False
+        # Search for available spots
+        for x in range(LEN_HALL):
+            if hall[x] != empty or x in pos_to_room:
+                continue
+            hall_dist = reachable(room_to_pos[r], x, hall)
+            if not hall_dist:
+                continue
 
-        if room_colors[pos.x] != color:
+            # Move shrimp
+            n_hall = list(hall)
+            n_hall[x] = shrimp
+            n_rooms = dict(rooms)
+            n_room = list(room)
+            n_room[y] = empty
+            n_rooms[r] = tuple(n_room)
+
+            cost = move_costs[shrimp] * (dist + hall_dist)
+            yield cost, (tuple(n_hall), tuple(n_rooms.items()))
+
+def moves(state):
+    yield from moves_down(state)
+    yield from moves_up(state)
+
+def check_rooms(rooms):
+    for shrimp, room in rooms:
+        if any(s != shrimp for s in room):
             return False
     return True
 
-def solve(burrow):
-    neighbors = map_neighborhood(burrow)
+def solve(rooms):
+    hall = tuple([empty]*LEN_HALL)
+    start = hall, rooms
 
-    h = hash_burrow(burrow)
-    costs = dict({h: 0})
-    queue = [(0, h, burrow)]
-    seen = set()
+    costs = dict()
+    costs[start] = 0
 
+    queue = [(0, start)]
     while queue:
-        cost, h, burrow = heapq.heappop(queue)
-        if h in seen:
-            continue
-        seen.add(h)
+        _, node = heapq.heappop(queue)
+        cost = costs[node]
 
-        if check_burrow(burrow):
+        _, rooms = node
+        if check_rooms(rooms):
             return cost
 
-        for move_cost, move_burrow in moves(burrow, neighbors):
-            h = hash_burrow(move_burrow)
+        for move_cost, move_node in moves(node):
             new_cost = cost + move_cost
-            old_cost = costs.get(h)
+            if move_node not in costs or new_cost < costs[move_node]:
+                costs[move_node] = new_cost
+                heapq.heappush(queue, (new_cost, move_node))
 
-            if not old_cost or new_cost <= old_cost:
-                costs[h] = new_cost
-                heapq.heappush(queue, (new_cost, h, move_burrow))
+def part1(rooms):
+    rooms = tuple( (k, tuple(v)) for k,v in rooms.items())
+    return solve(rooms)
 
-def part1(burrow):
-    return solve(burrow)
+def part2(rooms):
+    fold = {'A': ['D', 'D'], 'B': ['C', 'B'],
+            'C': ['B', 'A'], 'D': ['A', 'C']}
+    n_rooms = dict()
+    for r, room in rooms.items():
+        n_room = [room[0]] + fold[r] + [room[1]]
+        n_rooms[r] = n_room
+    n_rooms = tuple( (k, tuple(v)) for k,v in n_rooms.items())
 
-
-def part2(burrow):
-    new_burrow = dict()
-    for pos, tile in burrow.items():
-        if tile and pos.y == 2:
-            new_burrow[Coord(pos.x, pos.y+2)] = tile
-        else:
-            new_burrow[pos] = tile
-
-    new_burrow.update({
-        Coord(2,2): 'D', Coord(2,3): 'D', Coord(4,2): 'C', Coord(4,3): 'B',
-        Coord(6,2): 'B', Coord(6,3): 'A', Coord(8,2): 'A', Coord(8,3): 'C'
-    })
-
-    return solve(new_burrow)
+    return solve(n_rooms)
